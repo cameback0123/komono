@@ -20,6 +20,7 @@ const topKInput = document.getElementById('top-k');
 const topKValueSpan = document.getElementById('top-k-value');
 const streamToggle = document.getElementById('stream-toggle');
 const newChatBtn = document.getElementById('new-chat-btn');
+const thinkingToggle = document.getElementById('thinking-toggle');
 let chatHistory = []; // チャット履歴を保持する配列
 
 // --- 設定の読み込みと保存 ---
@@ -32,7 +33,8 @@ function saveSettings() {
         temperature: parseFloat(temperatureInput.value),
         topP: parseFloat(topPInput.value),
         topK: parseInt(topKInput.value, 10),
-        stream: streamToggle.checked
+        stream: streamToggle.checked,
+        thinking: thinkingToggle.checked
     };
     localStorage.setItem('claudePwaSettings', JSON.stringify(settings));
     alert('設定を保存しました。');
@@ -50,6 +52,7 @@ function loadSettings() {
         topPInput.value = settings.topP || 0.9;
         topKInput.value = settings.topK || 20;
         streamToggle.checked = settings.stream !== undefined ? settings.stream : true;
+        thinkingToggle.checked = settings.thinking !== undefined ? settings.thinking : false;
     }
     maxTokensValueSpan.textContent = maxTokensInput.value;
     temperatureValueSpan.textContent = temperatureInput.value;
@@ -105,20 +108,15 @@ async function sendMessage() {
     messageInput.value = '';
     
     // AIの返信用のUI要素を先に追加
-    const assistantMessageDiv = addMessageToUI('assistant', '...'); // Thinking...
-    let fullResponse = ""; // 完全な応答を保持する変数
-
-    try {
-        const response = await fetch('https://api.anthropic.com/v1/messages', {
-            method: 'POST',
-            headers: {
+// ★APIリクエストの準備
+    const headers = {
                 'x-api-key': settings.apiKey,
                 'anthropic-version': '2023-06-01',
                 'content-type': 'application/json',
-                'anthropic-beta': 'interleaved-thinking-2025-05-14',
+                    // 'anthropic-beta': 'interleaved-thinking-2025-05-14',
                 'anthropic-dangerous-direct-browser-access': 'true'
-            },
-            body: JSON.stringify({
+    };
+           const body = {
                 model: settings.model,
                 system: settings.systemPrompt,
                 messages: chatHistory,
@@ -127,10 +125,35 @@ async function sendMessage() {
                 top_p: settings.topP,
                 top_k: settings.topK,
                 stream: settings.stream,
-                thinking: { mode: "interleaved", budget_tokens: 512 }
-            })
-        });
+                    // thinking: { mode: "interleaved", budget_tokens: 512 }
+    };
+   // --- ★ここからが新しいロジック ---
+    // 拡張思考がONの場合、ヘッダーとbodyを動的に変更
+    if (settings.thinking) {
+        // ストリーミングがOFFだと思考は機能しないので、強制的にONにする
+        if (!settings.stream) {
+            alert('拡張思考を有効にするには、ストリーミングをONにする必要があります。');
+            // 必要ならここで処理を中断するか、自動でONにする
+            return; 
+        }
+        headers['anthropic-beta'] = 'interleaved-thinking-2025-05-14';
+        body.thinking = { mode: "interleaved", budget_tokens: 512 };
+    }
 
+    // --- ★ここまでが新しいロジック ---
+
+    // UI要素の準備
+    let thinkingDiv = null; // 思考ブロック表示用のdiv
+    const assistantMessageDiv = addMessageToUI('assistant', '...');
+    let fullResponse = "";
+
+    try {
+        const response = await fetch('https://api.anthropic.com/v1/messages', {
+            method: 'POST',
+            headers: headers, // 動的に作成したヘッダーを使用
+            body: JSON.stringify(body) // 動的に作成したbodyを使用
+        });
+        
         if (!response.ok) {
             const errorData = await response.json();
             throw new Error(`API Error: ${response.status} ${errorData.error.message}`);
@@ -147,22 +170,29 @@ async function sendMessage() {
                 const { done, value } = await reader.read();
                 if (done) break;
 
-                const chunk = decoder.decode(value);
+                const chunk = decoder.decode(value, { stream: true });
                 const lines = chunk.split('\n');
 
                 for (const line of lines) {
-                    // ストリームデータの解析
                     if (line.startsWith('data: ')) {
-                        try {
-                            const data = JSON.parse(line.substring(6));
-                            if (data.type === 'content_block_delta' && data.delta.type === 'text_delta') {
-                                const textChunk = data.delta.text;
-                                fullResponse += textChunk;
-                                assistantMessageDiv.textContent = fullResponse;
-                                chatContainer.scrollTop = chatContainer.scrollHeight;
+                        const data = JSON.parse(line.substring(6));
+
+                        // --- ★ここからが思考ブロックを処理するロジック ---
+                        if (data.type === 'thinking') {
+                            if (thinkingDiv === null) {
+                                // 最初の思考データが来たら、新しいdivを作成
+                                thinkingDiv = addMessageToUI('thinking', '');
                             }
-                        } catch (e) {
-                            // JSONパースエラーは無視することが多い（ストリームの終端などで発生）
+                            thinkingDiv.textContent += data.delta.text;
+                            chatContainer.scrollTop = chatContainer.scrollHeight;
+                        } 
+                        // --- ★ここまで ---
+                        
+                        else if (data.type === 'content_block_delta' && data.delta.type === 'text_delta') {
+                            const textChunk = data.delta.text;
+                            fullResponse += textChunk;
+                            assistantMessageDiv.textContent = fullResponse;
+                            chatContainer.scrollTop = chatContainer.scrollHeight;
                         }
                     }
                 }
