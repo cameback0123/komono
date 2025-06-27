@@ -189,22 +189,23 @@ const response = await fetch(
                     if (line.startsWith('data: ')) {
                         const data = JSON.parse(line.substring(6));
 
-                        // --- ★ここからが思考ブロックを処理するロジック ---
-                        if (data.type === 'thinking') {
-                            if (thinkingDiv === null) {
-                                // 最初の思考データが来たら、新しいdivを作成
-                                thinkingDiv = addMessageToUI('thinking', '');
-                            }
-                            thinkingDiv.textContent += data.delta.text;
-                            chatContainer.scrollTop = chatContainer.scrollHeight;
-                        } 
-                        // --- ★ここまで ---
-                        
-                        else if (data.type === 'content_block_delta' && data.delta.type === 'text_delta') {
-                            const textChunk = data.delta.text;
-                            fullResponse += textChunk;
-                            assistantMessageDiv.textContent = fullResponse;
-                            chatContainer.scrollTop = chatContainer.scrollHeight;
+// --- ★ 修正済み：思考＆応答ブロックの処理ロジック ---
+if (data.type === 'content_block_delta') {
+  const delta = data.delta;
+  // Thinking (思考) ブロック
+  if (delta.type === 'thinking_delta') {
+    if (!thinkingDiv) {
+      thinkingDiv = addMessageToUI('assistant-thinking', '');  // 思考用独自スタイル
+    }
+    thinkingDiv.textContent += delta.thinking;
+    fullResponse += delta.thinking;
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+  }
+  // 通常の応答テキストブロック
+  else if (delta.type === 'text_delta') {
+    assistantMessageDiv.textContent += delta.text;
+    fullResponse += delta.text;
+    chatContainer.scrollTop = chatContainer.scrollHeight;
                         }
                     }
                 }
