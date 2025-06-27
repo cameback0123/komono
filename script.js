@@ -19,7 +19,7 @@ const topPValueSpan = document.getElementById('top-p-value');
 const topKInput = document.getElementById('top-k');
 const topKValueSpan = document.getElementById('top-k-value');
 const streamToggle = document.getElementById('stream-toggle');
-
+const newChatBtn = document.getElementById('new-chat-btn');
 let chatHistory = []; // チャット履歴を保持する配列
 
 // --- 設定の読み込みと保存 ---
@@ -70,7 +70,16 @@ function loadChatHistory() {
         chatHistory.forEach(msg => addMessageToUI(msg.role, msg.content));
     }
 }
-
+// --- 新しいチャットを開始する ---
+function startNewChat() {
+    // confirmダイアログでユーザーに確認
+    if (confirm('現在のチャット履歴をすべてクリアして、新しいチャットを開始しますか？')) {
+        chatHistory = [];
+        chatContainer.innerHTML = '';
+        saveChatHistory();
+        addMessageToUI('system', '新しいチャットを開始しました。');
+    }
+}
 // --- UI操作 --- (★修正箇所)
 function addMessageToUI(role, content) {
     const messageDiv = document.createElement('div');
@@ -178,6 +187,7 @@ async function sendMessage() {
 settingsBtn.addEventListener('click', () => { settingsModal.style.display = 'block'; });
 closeBtn.addEventListener('click', () => { settingsModal.style.display = 'none'; });
 saveSettingsBtn.addEventListener('click', saveSettings);
+newChatBtn.addEventListener('click', startNewChat);
 sendBtn.addEventListener('click', sendMessage);
 messageInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
