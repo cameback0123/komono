@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="style.css">
     <link rel="manifest" href="manifest.json">
 
-    <meta name="theme-color" content="#faf9f5">
+    <meta name="theme-color" content="#f5f4ed">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
 </head>
 <body>
@@ -39,15 +39,15 @@
             <span class="close-btn">×</span>
             <h2>設定</h2>
             <div class="setting-item">
-                <label for="api-key">Anthropic APIキー:</label>
+                <label for="api-key">Anthropic API:</label>
                 <input type="password" id="api-key" placeholder="sk-ant-...">
             </div>
             <div class="setting-item">
-                <label for="system-prompt">システムプロンプト:</label>
+                <label for="system-prompt">system-prompt:</label>
                 <textarea id="system-prompt"></textarea>
             </div>
             <div class="setting-item">
-                <label for="model-select">モデル:</label>
+                <label for="model-select">model-select:</label>
                 <select id="model-select">
                     <!-- APIドキュメントに基づいた正確なモデルIDをvalueに設定 -->
                     <option value="claude-3-7-sonnet-20250219">Claude Sonnet 3.7</option>
@@ -72,7 +72,7 @@
                 <input type="range" id="top-k" min="1" max="50" step="1" value="20">
             </div>
             <div class="setting-item">
-                <label for="stream-toggle">ストリーミング（thinking）:</label>
+                <label for="stream-toggle">Thinking:</label>
                 <label class="switch">
                     <input type="checkbox" id="stream-toggle" checked>
                     <span class="slider round"></span>
