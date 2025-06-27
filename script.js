@@ -115,7 +115,7 @@ async function sendMessage() {
             headers: {
                 'x-api-key': settings.apiKey,
                 'anthropic-version': '2023-06-01',
-                'content-type': 'application/json'
+                'content-type': 'application/json',
                 'anthropic-beta': 'messages-2023-12-15'
             },
             body: JSON.stringify({
