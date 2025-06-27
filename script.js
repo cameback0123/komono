@@ -186,13 +186,8 @@ const response = await fetch(
                 const lines = chunk.split('\n');
 
                 for (const line of lines) {
-  if (line.startsWith('data: ')) {
-    let data;
-    try {
-      data = JSON.parse(line.substring(6));
-    } catch {
-      continue;
-    }
+                    if (line.startsWith('data: ')) {
+                        const data = JSON.parse(line.substring(6));
 
 // --- ★ 修正済み：思考＆応答ブロックの処理ロジック ---
 if (data.type === 'content_block_delta') {
