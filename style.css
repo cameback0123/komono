@@ -106,6 +106,9 @@ footer {
 /* 6. ボタン類 */
 /* ---------------------------------- */
 button {
+    -webkit-appearance: none;
+    appearance: none;
+    
     font-family: var(--font-family);
     padding: 10px 18px;
     border-radius: 6px;
@@ -114,6 +117,7 @@ button {
     cursor: pointer;
     transition: background-color 0.2s;
     font-weight: 500;
+    color: var(--text-color);
 }
 
 button:hover {
