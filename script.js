@@ -6,6 +6,8 @@ const saveSettingsBtn = document.getElementById('save-settings-btn');
 const sendBtn = document.getElementById('send-btn');
 const messageInput = document.getElementById('message-input');
 const chatContainer = document.getElementById('chat-container');
+const maxTokensValueSpan = document.getElementById('max-tokens-value');
+const temperatureValueSpan = document.getElementById('temperature-value');
 
 // 設定項目のDOM
 const apiKeyInput = document.getElementById('api-key');
@@ -36,6 +38,9 @@ function loadSettings() {
         maxTokensInput.value = settings.maxTokens || 1024;
         temperatureInput.value = settings.temperature || 0.7;
     }
+    // ↓ この2行を追加して、読み込み時にも値を表示させる
+    maxTokensValueSpan.textContent = maxTokensInput.value;
+    temperatureValueSpan.textContent = temperatureInput.value;
 }
 
 // --- チャット履歴の読み込みと保存 ---
@@ -126,7 +131,14 @@ messageInput.addEventListener('keydown', (e) => {
         sendMessage();
     }
 });
+// スライダーの値をリアルタイムで表示に反映させる
+maxTokensInput.addEventListener('input', (e) => {
+    maxTokensValueSpan.textContent = e.target.value;
+});
 
+temperatureInput.addEventListener('input', (e) => {
+    temperatureValueSpan.textContent = e.target.value;
+});
 // アプリケーション初期化
 window.addEventListener('load', () => {
     loadSettings();
