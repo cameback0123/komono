@@ -192,8 +192,7 @@ if (data.type === 'content_block_delta') {
     if (!thinkingDiv) {
       thinkingDiv = addMessageToUI('assistant-thinking', '');  // 思考用独自スタイル
     }
-    console.log('Thinking delta received:', delta.thinking); // デバッグ用ログ
-    thinkingDiv.textContent += delta.thinking || ''; // 空の場合を考慮
+    thinkingDiv.textContent += delta.thinking;
     fullResponse += delta.thinking;
     chatContainer.scrollTop = chatContainer.scrollHeight;
   }
