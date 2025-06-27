@@ -137,7 +137,7 @@ async function sendMessage() {
             return; 
         }
         headers['anthropic-beta'] = 'interleaved-thinking-2025-05-14';
-        body.thinking = { mode: "interleaved", budget_tokens: 512 };
+        body.thinking = { type: "thinking_v1", mode: "interleaved", budget_tokens: 512 };
     }
 
     // --- ★ここまでが新しいロジック ---
