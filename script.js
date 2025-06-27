@@ -114,7 +114,6 @@ async function sendMessage() {
                 'x-api-key': settings.apiKey,
                 'anthropic-version': '2023-06-01',
                 'content-type': 'application/json',
-                    // 'anthropic-beta': 'interleaved-thinking-2025-05-14',
                 'anthropic-dangerous-direct-browser-access': 'true'
     };
            const body = {
@@ -132,21 +131,18 @@ async function sendMessage() {
 if (settings.thinking) {
     // ストリーミングがOFFだと思考は機能しないので、強制的にONにする
     if (!settings.stream) {
-        alert('拡張思考を有効にするには、ストリーミングをONにする必要があります。');
+        alert('ストリーミングをONにする必要があります。');
         return; 
     }
     headers['anthropic-beta'] = 'interleaved-thinking-2025-05-14';
-    body.thinking = {
-        type: "enabled",
-        budget_tokens: Math.min(
-            settings.maxTokens - 1,
-            settings.thinkingBudget || 1024
-        )
-    };
-    // thinking モードなので top_k は設定しない
+  body.thinking = {
+    type: "enabled",
+    budget_tokens: Math.min(settings.maxTokens - 1, settings.thinkingBudget || 1024)
+  };
+  // thinking モードでは top_k を送らない
 } else {
-    // thinking モードなし → top_k を追加
-    body.top_k = settings.topK;
+  // thinking オフ → top_k を送る
+  body.top_k = settings.topK;
 }
 
 const response = await fetch(
