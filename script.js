@@ -43,7 +43,6 @@ function loadSettings() {
     const settings = JSON.parse(localStorage.getItem('claudePwaSettings'));
     if (settings) {
         apiKeyInput.value = settings.apiKey || '';
-        // ★モデル名を修正（存在しないモデル名だったため）
         modelSelect.value = settings.model || 'claude-3-7-sonnet-20250219';
         systemPromptInput.value = settings.systemPrompt || '';
         maxTokensInput.value = settings.maxTokens || 1024;
@@ -115,7 +114,8 @@ async function sendMessage() {
             headers: {
                 'x-api-key': settings.apiKey,
                 'anthropic-version': '2023-06-01',
-                'content-type': 'application/json'
+                'content-type': 'application/json',
+                'anthropic-beta': 'interleaved-thinking-2025-05-14'
             },
             body: JSON.stringify({
                 model: settings.model,
