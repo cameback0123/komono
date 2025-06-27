@@ -102,7 +102,7 @@ async function sendMessage() {
         alert('APIキーが設定されていません。');
         return;
     }
-    const useExtended = settings.thinking;
+    const useExtended = settings.extended;  // 追加：Extended Thinking トグル値
 
     addMessageToUI('user', userMessage);
     chatHistory.push({ role: 'user', content: userMessage });
@@ -144,6 +144,16 @@ if (settings.thinking) {
   // thinking オフ → top_k を送る
   body.top_k = settings.topK;
 }
+
+const response = await fetch(
+    'https://api.anthropic.com/v1/messages',
+    {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(body)
+    }
+);
+
     // UI要素の準備
     let thinkingDiv = null; // 思考ブロック表示用のdiv
     const assistantMessageDiv = addMessageToUI('assistant', '...');
@@ -176,13 +186,8 @@ if (settings.thinking) {
                 const lines = chunk.split('\n');
 
                 for (const line of lines) {
-  if (line.startsWith('data: ')) {
-    let data;
-    try {
-      data = JSON.parse(line.substring(6));
-    } catch {
-      continue;
-    }
+                    if (line.startsWith('data: ')) {
+                        const data = JSON.parse(line.substring(6));
 
 // --- ★ 修正済み：思考＆応答ブロックの処理ロジック ---
 if (data.type === 'content_block_delta') {
