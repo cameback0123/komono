@@ -29,7 +29,7 @@ function saveSettings() {
         model: modelSelect.value,
         systemPrompt: systemPromptInput.value,
         maxTokens: parseInt(maxTokensInput.value, 10),
-        temperature: parseFloat(temperatureInput.value), // ★カンマを修正
+        temperature: parseFloat(temperatureInput.value),
         topP: parseFloat(topPInput.value),
         topK: parseInt(topKInput.value, 10),
         stream: streamToggle.checked
@@ -44,10 +44,10 @@ function loadSettings() {
     if (settings) {
         apiKeyInput.value = settings.apiKey || '';
         // ★モデル名を修正（存在しないモデル名だったため）
-        modelSelect.value = settings.model || 'claude-3-haiku-20240307';
+        modelSelect.value = settings.model || 'claude-3-7-sonnet-20250219';
         systemPromptInput.value = settings.systemPrompt || '';
         maxTokensInput.value = settings.maxTokens || 1024;
-        temperatureInput.value = settings.temperature || 0.7;
+        temperatureInput.value = settings.temperature || 1;
         topPInput.value = settings.topP || 0.9;
         topKInput.value = settings.topK || 20;
         streamToggle.checked = settings.stream !== undefined ? settings.stream : true;
@@ -115,8 +115,7 @@ async function sendMessage() {
             headers: {
                 'x-api-key': settings.apiKey,
                 'anthropic-version': '2023-06-01',
-                'content-type': 'application/json',
-                'anthropic-beta': 'messages-2023-12-15'
+                'content-type': 'application/json'
             },
             body: JSON.stringify({
                 model: settings.model,
