@@ -36,6 +36,15 @@
                 <textarea id="system-prompt"></textarea>
             </div>
             <div class="setting-item">
+                <label for="model-select">モデル:</label>
+                <select id="model-select">
+                    <!-- APIドキュメントに基づいた正確なモデルIDをvalueに設定 -->
+                    <option value="claude-3-7-sonnet-20250219">Claude Sonnet 3.7</option>
+                    <option value="claude-opus-4-20250514">Claude Opus 4</option>
+                    <option value="claude-sonnet-4-20250514">Claude Sonnet 4</option>
+                </select>
+            </div>
+            <div class="setting-item">
                 <label for="max-tokens">Max Tokens: <span id="max-tokens-value">1024</span></label>
                 <input type="range" id="max-tokens" min="1" max="4096" value="1024">
             </div>
