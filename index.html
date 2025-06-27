@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claude PWA</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+</head>
+<body>
+    <header>
+        <h1>Claude PWA</h1>
+        <button id="settings-btn">設定</button>
+    </header>
+
+    <main id="chat-container">
+        <!-- チャットメッセージはここに表示されます -->
+    </main>
+
+    <footer>
+        <textarea id="message-input" placeholder="メッセージを入力..."></textarea>
+        <button id="send-btn">送信</button>
+    </footer>
+
+    <!-- 設定モーダル -->
+    <div id="settings-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn">×</span>
+            <h2>設定</h2>
+            <div class="setting-item">
+                <label for="api-key">Anthropic APIキー:</label>
+                <input type="password" id="api-key" placeholder="sk-ant-...">
+            </div>
+            <div class="setting-item">
+                <label for="system-prompt">システムプロンプト:</label>
+                <textarea id="system-prompt"></textarea>
+            </div>
+            <div class="setting-item">
+                <label for="max-tokens">Max Tokens: <span id="max-tokens-value">1024</span></label>
+                <input type="range" id="max-tokens" min="1" max="4096" value="1024">
+            </div>
+            <div class="setting-item">
+                <label for="temperature">Temperature: <span id="temperature-value">0.7</span></label>
+                <input type="range" id="temperature" min="0" max="1" step="0.1" value="0.7">
+            </div>
+            <!-- top_p, top_kも同様に追加できます -->
+            <button id="save-settings-btn">保存</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
