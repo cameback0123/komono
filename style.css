@@ -80,7 +80,16 @@ main {
     margin-right: auto;
     white-space: pre-wrap; /* 改行やスペースをそのまま表示 */
 }
-
+.message.assistant-thinking {
+    background-color: #f0f0f0; /* 背景を少し暗くする */
+    border: 1px dashed #ccc;
+    color: #555;
+    font-size: 14px;
+    font-family: monospace; /* 等幅フォントで見やすくする */
+    padding: 10px;
+    margin-right: auto;
+    white-space: pre-wrap; /* 改行やスペースをそのまま表示 */
+}
 .message.system {
     text-align: center;
     color: #888;
