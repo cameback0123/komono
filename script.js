@@ -126,7 +126,8 @@ async function sendMessage() {
                 temperature: settings.temperature,
                 top_p: settings.topP,
                 top_k: settings.topK,
-                stream: settings.stream
+                stream: settings.stream,
+                thinking: { mode: "interleaved", budget_tokens: 512 }
             })
         });
 
