@@ -113,9 +113,8 @@ async function sendMessage() {
             method: 'POST',
             headers: {
                 'x-api-key': settings.apiKey,
-                'anthropic-version': '2023-06-01',
                 'content-type': 'application/json',
-                'anthropic-beta': 'interleaved-thinking-2025-05-14'
+                'anthropic-beta': 'messages-2023-12-15'
             },
             body: JSON.stringify({
                 model: settings.model,
