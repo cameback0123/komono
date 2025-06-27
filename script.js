@@ -14,6 +14,11 @@ const apiKeyInput = document.getElementById('api-key');
 const systemPromptInput = document.getElementById('system-prompt');
 const maxTokensInput = document.getElementById('max-tokens');
 const temperatureInput = document.getElementById('temperature');
+const topPInput = document.getElementById('top-p');
+const topPValueSpan = document.getElementById('top-p-value');
+const topKInput = document.getElementById('top-k');
+const topKValueSpan = document.getElementById('top-k-value');
+const streamToggle = document.getElementById('stream-toggle');
 
 let chatHistory = []; // チャット履歴を保持する配列
 
@@ -21,26 +26,36 @@ let chatHistory = []; // チャット履歴を保持する配列
 function saveSettings() {
     const settings = {
         apiKey: apiKeyInput.value,
-        model: modelSelect.value, // ←追加
+        model: modelSelect.value,
         systemPrompt: systemPromptInput.value,
         maxTokens: parseInt(maxTokensInput.value, 10),
-        temperature: parseFloat(temperatureInput.value)
+        temperature: parseFloat(temperatureInput.value), // ★カンマを修正
+        topP: parseFloat(topPInput.value),
+        topK: parseInt(topKInput.value, 10),
+        stream: streamToggle.checked
     };
     localStorage.setItem('claudePwaSettings', JSON.stringify(settings));
     alert('設定を保存しました。');
     settingsModal.style.display = 'none';
 }
+
 function loadSettings() {
     const settings = JSON.parse(localStorage.getItem('claudePwaSettings'));
     if (settings) {
         apiKeyInput.value = settings.apiKey || '';
-        modelSelect.value = settings.model || 'claude-3-7-sonnet-20250219';
+        // ★モデル名を修正（存在しないモデル名だったため）
+        modelSelect.value = settings.model || 'claude-3-haiku-20240307';
         systemPromptInput.value = settings.systemPrompt || '';
         maxTokensInput.value = settings.maxTokens || 1024;
         temperatureInput.value = settings.temperature || 0.7;
+        topPInput.value = settings.topP || 0.9;
+        topKInput.value = settings.topK || 20;
+        streamToggle.checked = settings.stream !== undefined ? settings.stream : true;
     }
     maxTokensValueSpan.textContent = maxTokensInput.value;
     temperatureValueSpan.textContent = temperatureInput.value;
+    topPValueSpan.textContent = topPInput.value;
+    topKValueSpan.textContent = topKInput.value;
 }
 
 // --- チャット履歴の読み込みと保存 ---
@@ -56,13 +71,14 @@ function loadChatHistory() {
     }
 }
 
-// --- UI操作 ---
+// --- UI操作 --- (★修正箇所)
 function addMessageToUI(role, content) {
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${role}`;
     messageDiv.textContent = content;
     chatContainer.appendChild(messageDiv);
-    chatContainer.scrollTop = chatContainer.scrollHeight; // 自動スクロール
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+    return messageDiv; // 作成したdivを返すように変更
 }
 
 // --- メッセージ送信処理 ---
@@ -72,14 +88,17 @@ async function sendMessage() {
 
     const settings = JSON.parse(localStorage.getItem('claudePwaSettings'));
     if (!settings || !settings.apiKey) {
-        alert('APIキーが設定されていません。設定画面からキーを保存してください。');
+        alert('APIキーが設定されていません。');
         return;
     }
 
-    // ユーザーメッセージをUIと履歴に追加
     addMessageToUI('user', userMessage);
     chatHistory.push({ role: 'user', content: userMessage });
     messageInput.value = '';
+    
+    // AIの返信用のUI要素を先に追加
+    const assistantMessageDiv = addMessageToUI('assistant', '...'); // Thinking...
+    let fullResponse = ""; // 完全な応答を保持する変数
 
     try {
         const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -90,13 +109,14 @@ async function sendMessage() {
                 'content-type': 'application/json'
             },
             body: JSON.stringify({
-                model: settings.model, // ← ハードコードされていた部分を修正
+                model: settings.model,
                 system: settings.systemPrompt,
                 messages: chatHistory,
                 max_tokens: settings.maxTokens,
                 temperature: settings.temperature,
-                // top_p, top_k も同様に設定から取得
-                stream: false // まずはストリームなしで実装
+                top_p: settings.topP,
+                top_k: settings.topK,
+                stream: settings.stream
             })
         });
 
@@ -105,20 +125,54 @@ async function sendMessage() {
             throw new Error(`API Error: ${response.status} ${errorData.error.message}`);
         }
 
-        const data = await response.json();
-        const claudeMessage = data.content[0].text;
+        assistantMessageDiv.textContent = ""; // "..."をクリア
 
-        // Claudeの応答をUIと履歴に追加
-        addMessageToUI('assistant', claudeMessage);
-        chatHistory.push({ role: 'assistant', content: claudeMessage });
-        saveChatHistory(); // 履歴を保存
+        if (settings.stream) {
+            // ストリーミングが有効な場合
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                const chunk = decoder.decode(value);
+                const lines = chunk.split('\n');
+
+                for (const line of lines) {
+                    // ストリームデータの解析
+                    if (line.startsWith('data: ')) {
+                        try {
+                            const data = JSON.parse(line.substring(6));
+                            if (data.type === 'content_block_delta' && data.delta.type === 'text_delta') {
+                                const textChunk = data.delta.text;
+                                fullResponse += textChunk;
+                                assistantMessageDiv.textContent = fullResponse;
+                                chatContainer.scrollTop = chatContainer.scrollHeight;
+                            }
+                        } catch (e) {
+                            // JSONパースエラーは無視することが多い（ストリームの終端などで発生）
+                        }
+                    }
+                }
+            }
+            chatHistory.push({ role: 'assistant', content: fullResponse });
+            saveChatHistory();
+
+        } else {
+            // ストリーミングが無効な場合
+            const data = await response.json();
+            const claudeMessage = data.content[0].text;
+            assistantMessageDiv.textContent = claudeMessage;
+            chatHistory.push({ role: 'assistant', content: claudeMessage });
+            saveChatHistory();
+        }
 
     } catch (error) {
         console.error(error);
-        addMessageToUI('assistant', `エラーが発生しました: ${error.message}`);
+        assistantMessageDiv.textContent = `エラーが発生しました: ${error.message}`;
     }
 }
-
 
 // --- イベントリスナー ---
 settingsBtn.addEventListener('click', () => { settingsModal.style.display = 'block'; });
@@ -132,23 +186,21 @@ messageInput.addEventListener('keydown', (e) => {
     }
 });
 // スライダーの値をリアルタイムで表示に反映させる
-maxTokensInput.addEventListener('input', (e) => {
-    maxTokensValueSpan.textContent = e.target.value;
-});
+maxTokensInput.addEventListener('input', (e) => { maxTokensValueSpan.textContent = e.target.value; });
+temperatureInput.addEventListener('input', (e) => { temperatureValueSpan.textContent = e.target.value; });
+topPInput.addEventListener('input', (e) => { topPValueSpan.textContent = e.target.value; });
+topKInput.addEventListener('input', (e) => { topKValueSpan.textContent = e.target.value; });
 
-temperatureInput.addEventListener('input', (e) => {
-    temperatureValueSpan.textContent = e.target.value;
-});
 // アプリケーション初期化
 window.addEventListener('load', () => {
     loadSettings();
     loadChatHistory();
 });
 
-// script.js の末尾に追加
+// Service Workerの登録
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').then(registration => {
+    navigator.serviceWorker.register('./service-worker.js').then(registration => {
       console.log('SW registered: ', registration);
     }).catch(registrationError => {
       console.log('SW registration failed: ', registrationError);
