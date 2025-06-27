@@ -4,15 +4,23 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Claude PWA</title>
+  <!-- Google Fonts の読み込み -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    
     <link rel="stylesheet" href="style.css">
     <link rel="manifest" href="manifest.json">
+
+    <meta name="theme-color" content="#faf9f5">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
 </head>
 <body>
     <header>
         <h1>Claude PWA</h1>
         <div>
-        <button id="new-chat-btn">新しいチャット</button>
-        <button id="settings-btn">設定</button>
+        <button id="new-chat-btn">new</button>
+        <button id="settings-btn">setting</button>
         </div>
     </header>
 
@@ -21,8 +29,8 @@
     </main>
 
     <footer>
-        <textarea id="message-input" placeholder="メッセージを入力..."></textarea>
-        <button id="send-btn">送信</button>
+        <textarea id="message-input" placeholder="messages..."></textarea>
+        <button id="send-btn">send</button>
     </footer>
 
     <!-- 設定モーダル -->
@@ -64,7 +72,7 @@
                 <input type="range" id="top-k" min="1" max="50" step="1" value="20">
             </div>
             <div class="setting-item">
-                <label for="stream-toggle">ストリーミング（逐次表示）:</label>
+                <label for="stream-toggle">ストリーミング（thinking）:</label>
                 <label class="switch">
                     <input type="checkbox" id="stream-toggle" checked>
                     <span class="slider round"></span>
