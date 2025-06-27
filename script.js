@@ -102,6 +102,7 @@ async function sendMessage() {
         alert('APIキーが設定されていません。');
         return;
     }
+    const useExtended = settings.extended;  // 追加：Extended Thinking トグル値
 
     addMessageToUI('user', userMessage);
     chatHistory.push({ role: 'user', content: userMessage });
@@ -123,27 +124,39 @@ async function sendMessage() {
                 max_tokens: settings.maxTokens,
                 temperature: settings.temperature,
                 top_p: settings.topP,
-                top_k: settings.topK,
                 stream: settings.stream,
-                    // thinking: { mode: "interleaved", budget_tokens: 512 }
+
     };
    // --- ★ここからが新しいロジック ---
     // 拡張思考がONの場合、ヘッダーとbodyを動的に変更
-    if (settings.thinking) {
-        // ストリーミングがOFFだと思考は機能しないので、強制的にONにする
-        if (!settings.stream) {
-            alert('拡張思考を有効にするには、ストリーミングをONにする必要があります。');
-            // 必要ならここで処理を中断するか、自動でONにする
-            return; 
-        }
-        headers['anthropic-beta'] = 'interleaved-thinking-2025-05-14';
-        body.thinking = {
-    type: "enabled",
-    budget_tokens: Math.min(settings.maxTokens - 1, settings.thinkingBudget || 1024)
-  };
+if (settings.thinking) {
+    // ストリーミングがOFFだと思考は機能しないので、強制的にONにする
+    if (!settings.stream) {
+        alert('拡張思考を有効にするには、ストリーミングをONにする必要があります。');
+        return; 
     }
+    headers['anthropic-beta'] = 'interleaved-thinking-2025-05-14';
+    body.thinking = {
+        type: "enabled",
+        budget_tokens: Math.min(
+            settings.maxTokens - 1,
+            settings.thinkingBudget || 1024
+        )
+    };
+    // thinking モードなので top_k は設定しない
+} else {
+    // thinking モードなし → top_k を追加
+    body.top_k = settings.topK;
+}
 
-    // --- ★ここまでが新しいロジック ---
+const response = await fetch(
+    'https://api.anthropic.com/v1/messages',
+    {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(body)
+    }
+);
 
     // UI要素の準備
     let thinkingDiv = null; // 思考ブロック表示用のdiv
