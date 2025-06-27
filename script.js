@@ -8,7 +8,7 @@ const messageInput = document.getElementById('message-input');
 const chatContainer = document.getElementById('chat-container');
 const maxTokensValueSpan = document.getElementById('max-tokens-value');
 const temperatureValueSpan = document.getElementById('temperature-value');
-
+const modelSelect = document.getElementById('model-select');
 // 設定項目のDOM
 const apiKeyInput = document.getElementById('api-key');
 const systemPromptInput = document.getElementById('system-prompt');
@@ -21,6 +21,7 @@ let chatHistory = []; // チャット履歴を保持する配列
 function saveSettings() {
     const settings = {
         apiKey: apiKeyInput.value,
+        model: modelSelect.value, // ←追加
         systemPrompt: systemPromptInput.value,
         maxTokens: parseInt(maxTokensInput.value, 10),
         temperature: parseFloat(temperatureInput.value)
@@ -29,16 +30,15 @@ function saveSettings() {
     alert('設定を保存しました。');
     settingsModal.style.display = 'none';
 }
-
 function loadSettings() {
     const settings = JSON.parse(localStorage.getItem('claudePwaSettings'));
     if (settings) {
         apiKeyInput.value = settings.apiKey || '';
+        modelSelect.value = settings.model || 'claude-3-7-sonnet-20250219';
         systemPromptInput.value = settings.systemPrompt || '';
         maxTokensInput.value = settings.maxTokens || 1024;
         temperatureInput.value = settings.temperature || 0.7;
     }
-    // ↓ この2行を追加して、読み込み時にも値を表示させる
     maxTokensValueSpan.textContent = maxTokensInput.value;
     temperatureValueSpan.textContent = temperatureInput.value;
 }
@@ -90,7 +90,7 @@ async function sendMessage() {
                 'content-type': 'application/json'
             },
             body: JSON.stringify({
-                model: "claude-3-haiku-20240307", // 最も高速なモデルでテスト
+                model: settings.model, // ← ハードコードされていた部分を修正
                 system: settings.systemPrompt,
                 messages: chatHistory,
                 max_tokens: settings.maxTokens,
