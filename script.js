@@ -197,10 +197,15 @@ if (settings.thinking) {
                                 fullResponse += textChunk;
                                 assistantMessageDiv.textContent = fullResponse;
                                 chatContainer.scrollTop = chatContainer.scrollHeight;
+                             }
                             }
+                            // ★★★ ここまで ★★★
+                        } catch (e) {
+                            // JSONパースエラーは無視するか、コンソールに出力
+                            // console.error("JSON parse error:", e);
                         }
-                        // ★★★ ここまで ★★★
-                }
+                    }
+                } // ← ★この閉じ括弧を追加してください
             }
             chatHistory.push({ role: 'assistant', content: fullResponse });
             saveChatHistory();
