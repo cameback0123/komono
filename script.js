@@ -102,125 +102,92 @@ async function sendMessage() {
         alert('APIキーが設定されていません。');
         return;
     }
-    const useExtended = settings.extended;  // 追加：Extended Thinking トグル値
 
     addMessageToUI('user', userMessage);
     chatHistory.push({ role: 'user', content: userMessage });
     messageInput.value = '';
-    
-    // AIの返信用のUI要素を先に追加
-// ★APIリクエストの準備
+
     const headers = {
-                'x-api-key': settings.apiKey,
-                'anthropic-version': '2023-06-01',
-                'content-type': 'application/json',
-                'anthropic-dangerous-direct-browser-access': 'true'
+        'x-api-key': settings.apiKey,
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json',
+        'anthropic-dangerous-direct-browser-access': 'true'
     };
-           const body = {
-                model: settings.model,
-                system: settings.systemPrompt,
-                messages: chatHistory,
-                max_tokens: settings.maxTokens,
-                temperature: settings.temperature,
-                top_p: settings.topP,
-                stream: settings.stream,
+    const body = {
+        model: settings.model,
+        system: settings.systemPrompt,
+        messages: chatHistory,
+        max_tokens: settings.maxTokens,
+        temperature: settings.temperature,
+        top_p: settings.topP,
+        stream: settings.stream,
+    };
 
-    };
-   // --- ★ここからが新しいロジック ---
-    // 拡張思考がONの場合、ヘッダーとbodyを動的に変更
-if (settings.thinking) {
-    // ストリーミングがOFFだと思考は機能しないので、強制的にONにする
-    if (!settings.stream) {
-        alert('ストリーミングをONにする必要があります。');
-        return; 
+    if (settings.thinking) {
+        if (!settings.stream) {
+            alert('ストリーミングをONにする必要があります。');
+            return;
+        }
+        headers['anthropic-beta'] = 'interleaved-thinking-2025-05-14';
+        body.thinking = {
+            type: "enabled",
+            budget_tokens: Math.min(settings.maxTokens - 1, settings.thinkingBudget || 1024)
+        };
+    } else {
+        body.top_k = settings.topK;
     }
-    headers['anthropic-beta'] = 'interleaved-thinking-2025-05-14';
-  body.thinking = {
-    type: "enabled",
-    budget_tokens: Math.min(settings.maxTokens - 1, settings.thinkingBudget || 1024)
-  };
-  // thinking モードでは top_k を送らない
-} else {
-  // thinking オフ → top_k を送る
-  body.top_k = settings.topK;
-}
 
-    // UI要素の準備
-    let thinkingDiv = null; // 思考ブロック表示用のdiv
+    let thinkingDiv = null;
     const assistantMessageDiv = addMessageToUI('assistant', '...');
     let fullResponse = "";
 
     try {
         const response = await fetch('https://api.anthropic.com/v1/messages', {
             method: 'POST',
-            headers: headers, // 動的に作成したヘッダーを使用
-            body: JSON.stringify(body) // 動的に作成したbodyを使用
+            headers,
+            body: JSON.stringify(body)
         });
-        
+
         if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(`API Error: ${response.status} ${errorData.error.message}`);
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        assistantMessageDiv.textContent = ""; // "..."をクリア
-
         if (settings.stream) {
-            // ストリーミングが有効な場合
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
-
             while (true) {
                 const { done, value } = await reader.read();
                 if (done) break;
-
                 const chunk = decoder.decode(value, { stream: true });
                 const lines = chunk.split('\n');
-
                 for (const line of lines) {
                     if (line.startsWith('data: ')) {
                         const data = JSON.parse(line.substring(6));
-// ★★★ 修正後のロジック ★★★
                         if (data.type === 'content_block_delta') {
-                            // 思考ブロックの処理 (thinking_delta)
-                            if (data.delta.type === 'thinking_delta') {
-                                if (thinkingDiv === null) {
-                                    // 最初の思考データが来たら、新しいdivを作成
-                                    thinkingDiv = addMessageToUI('thinking', '');
-                                }
-                                // 思考テキストを追加
-                                thinkingDiv.textContent += data.delta.thinking;
-                                chatContainer.scrollTop = chatContainer.scrollHeight;
-                            } 
-                            // 通常の応答テキストの処理 (text_delta)
-                            else if (data.delta.type === 'text_delta') {
-                                const textChunk = data.delta.text;
-                                fullResponse += textChunk;
-                                assistantMessageDiv.textContent = fullResponse;
-                                chatContainer.scrollTop = chatContainer.scrollHeight;
-                             }
+                            const delta = data.delta;
+                            if (delta.type === 'thinking_delta') {
+                                if (!thinkingDiv) thinkingDiv = addMessageToUI('assistant-thinking', '');
+                                thinkingDiv.textContent += delta.thinking;
+                                fullResponse += delta.thinking;
+                            } else if (delta.type === 'text_delta') {
+                                assistantMessageDiv.textContent += delta.text;
+                                fullResponse += delta.text;
                             }
-                            // ★★★ ここまで ★★★
-                        } catch (e) {
-                            // JSONパースエラーは無視するか、コンソールに出力
-                            // console.error("JSON parse error:", e);
                         }
                     }
-                } // ← ★この閉じ括弧を追加してください
+                }
             }
-            chatHistory.push({ role: 'assistant', content: fullResponse });
-            saveChatHistory();
-
         } else {
-            // ストリーミングが無効な場合
-            const data = await response.json();
+            const data = await response.json(); // JSONとしてパース
             const claudeMessage = data.content[0].text;
             assistantMessageDiv.textContent = claudeMessage;
-            chatHistory.push({ role: 'assistant', content: claudeMessage });
-            saveChatHistory();
+            fullResponse = claudeMessage;
         }
 
+        chatHistory.push({ role: 'assistant', content: fullResponse });
+        saveChatHistory();
     } catch (error) {
-        console.error(error);
+        console.error("Error in sendMessage:", error);
         assistantMessageDiv.textContent = `エラーが発生しました: ${error.message}`;
     }
 }
