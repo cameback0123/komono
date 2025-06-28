@@ -152,58 +152,72 @@ async function sendMessage() {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-if (settings.stream) {
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let thinkingContent = ""; // 思考内容を蓄積
-    let responseContent = ""; // 応答内容を蓄積
+async function sendMessage() {
+    // ... (既存のコードは変更なし)
 
-    while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+    if (settings.stream) {
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let thinkingContent = ""; // 思考内容を蓄積
+        let responseContent = ""; // 応答内容を蓄積
+        let hasDisplayedThinking = false; // 思考を表示したかどうかのフラグ
 
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split('\n');
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
 
-        for (const line of lines) {
-            if (line.startsWith('data: ')) {
-                const data = JSON.parse(line.substring(6));
+            const chunk = decoder.decode(value, { stream: true });
+            const lines = chunk.split('\n');
 
-                if (data.type === 'content_block_delta') {
-                    const delta = data.delta;
-                    if (delta.type === 'thinking_delta') {
-                        thinkingContent += delta.thinking;
-                    } else if (delta.type === 'text_delta') {
-                        responseContent += delta.text;
+            for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                    const data = JSON.parse(line.substring(6));
+                    console.log("Received data:", data); // デバッグ用
+
+                    if (data.type === 'content_block_delta') {
+                        const delta = data.delta;
+                        if (delta.type === 'thinking_delta') {
+                            thinkingContent += delta.thinking;
+                            // 思考が蓄積されたら即座に表示（初回のみ）
+                            if (!hasDisplayedThinking && thinkingContent) {
+                                thinkingDiv = addMessageToUI('assistant-thinking', thinkingContent);
+                                chatContainer.scrollTop = chatContainer.scrollHeight;
+                                hasDisplayedThinking = true;
+                            }
+                        } else if (delta.type === 'text_delta') {
+                            responseContent += delta.text;
+                            // 応答は思考表示後に追加
+                            if (hasDisplayedThinking) {
+                                assistantMessageDiv.textContent = responseContent;
+                                chatContainer.scrollTop = chatContainer.scrollHeight;
+                            }
+                        }
                     }
                 }
             }
         }
-    }
 
-    // 思考を先に表示
-    if (thinkingContent) {
-        thinkingDiv = addMessageToUI('assistant-thinking', thinkingContent);
-        chatContainer.scrollTop = chatContainer.scrollHeight;
-    }
+        // ループ終了後、残りの内容を補完
+        if (thinkingContent && !hasDisplayedThinking) {
+            thinkingDiv = addMessageToUI('assistant-thinking', thinkingContent);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+        if (responseContent) {
+            assistantMessageDiv.textContent = responseContent;
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
 
-    // 応答をその後に表示
-    if (responseContent) {
-        assistantMessageDiv.textContent = responseContent;
-        chatContainer.scrollTop = chatContainer.scrollHeight;
+        fullResponse = thinkingContent + responseContent;
+        chatHistory.push({ role: 'assistant', content: fullResponse });
+        saveChatHistory();
+    } else {
+        // ストリーミングでない場合の処理は変更なし
+        const data = await response.json();
+        const claudeMessage = data.content[0].text;
+        assistantMessageDiv.textContent = claudeMessage;
+        chatHistory.push({ role: 'assistant', content: claudeMessage });
+        saveChatHistory();
     }
-
-    fullResponse = thinkingContent + responseContent;
-    chatHistory.push({ role: 'assistant', content: fullResponse });
-    saveChatHistory();
-} else {
-    // ストリーミングが無効な場合
-    const data = await response.json();
-    const claudeMessage = data.content[0].text;
-    assistantMessageDiv.textContent = claudeMessage;
-    chatHistory.push({ role: 'assistant', content: claudeMessage });
-    saveChatHistory();
-}
 } catch (error) {
     console.error("Error in sendMessage:", error);
     assistantMessageDiv.textContent = `エラーが発生しました: ${error.message}`;
