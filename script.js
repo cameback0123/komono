@@ -37,7 +37,7 @@ function saveSettings() {
         thinking: thinkingToggle.checked
     };
     localStorage.setItem('claudePwaSettings', JSON.stringify(settings));
-    alert('設定を保存しました。');
+    alert('Saved!');
     settingsModal.style.display = 'none';
 }
 
@@ -75,11 +75,11 @@ function loadChatHistory() {
 // --- 新しいチャットを開始する ---
 function startNewChat() {
     // confirmダイアログでユーザーに確認
-    if (confirm('現在のチャット履歴をすべてクリアして、新しいチャットを開始しますか？')) {
+    if (confirm('Clear?')) {
         chatHistory = [];
         chatContainer.innerHTML = '';
         saveChatHistory();
-        addMessageToUI('system', '新しいチャットを開始しました。');
+        addMessageToUI('system', 'New chat');
     }
 }
 // --- UI操作 --- (★修正箇所)
@@ -99,7 +99,7 @@ async function sendMessage() {
 
     const settings = JSON.parse(localStorage.getItem('claudePwaSettings'));
     if (!settings || !settings.apiKey) {
-        alert('APIキーが設定されていません。');
+        alert('API key?');
         return;
     }
 
@@ -125,7 +125,7 @@ async function sendMessage() {
 
     if (settings.thinking) {
         if (!settings.stream) {
-            alert('ストリーミングをONにする必要があります。');
+            alert('streaming on');
             return;
         }
         headers['anthropic-beta'] = 'interleaved-thinking-2025-05-14';
@@ -217,7 +217,7 @@ async function sendMessage() {
     }
 } catch (error) {
     console.error("Error in sendMessage:", error);
-    assistantMessageDiv.textContent = `エラーが発生しました: ${error.message}`;
+    assistantMessageDiv.textContent = `error!: ${error.message}`;
 }
 }
 
