@@ -49,7 +49,7 @@ function loadSettings() {
         systemPromptInput.value = settings.systemPrompt || '';
         maxTokensInput.value = settings.maxTokens || 1500;
         temperatureInput.value = settings.temperature || 1;
-        topPInput.value = settings.topP || 0.9;
+        topPInput.value = parseFloat(settings.topP || 0.99).toFixed(2);
         topKInput.value = settings.topK || 40;
         streamToggle.checked = settings.stream !== undefined ? settings.stream : true;
         thinkingToggle.checked = settings.thinking !== undefined ? settings.thinking : false;
@@ -236,7 +236,11 @@ messageInput.addEventListener('keydown', (e) => {
 // スライダーの値をリアルタイムで表示に反映させる
 maxTokensInput.addEventListener('input', (e) => { maxTokensValueSpan.textContent = e.target.value; });
 temperatureInput.addEventListener('input', (e) => { temperatureValueSpan.textContent = e.target.value; });
-topPInput.addEventListener('input', (e) => { topPValueSpan.textContent = e.target.value; });
+topPInput.addEventListener('input', (e) => {
+    const value = parseFloat(e.target.value).toFixed(2); // 小数点第二位に丸める
+    topPValueSpan.textContent = value;
+    topPNumberInput.value = value;
+});
 topKInput.addEventListener('input', (e) => { topKValueSpan.textContent = e.target.value; });
 
 // アプリケーション初期化
