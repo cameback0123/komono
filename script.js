@@ -152,9 +152,6 @@ async function sendMessage() {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-async function sendMessage() {
-    // ... (既存のコードは変更なし)
-
     if (settings.stream) {
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
