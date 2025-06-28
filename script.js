@@ -47,10 +47,10 @@ function loadSettings() {
         apiKeyInput.value = settings.apiKey || '';
         modelSelect.value = settings.model || 'claude-3-7-sonnet-20250219';
         systemPromptInput.value = settings.systemPrompt || '';
-        maxTokensInput.value = settings.maxTokens || 1024;
+        maxTokensInput.value = settings.maxTokens || 1500;
         temperatureInput.value = settings.temperature || 1;
         topPInput.value = settings.topP || 0.9;
-        topKInput.value = settings.topK || 20;
+        topKInput.value = settings.topK || 40;
         streamToggle.checked = settings.stream !== undefined ? settings.stream : true;
         thinkingToggle.checked = settings.thinking !== undefined ? settings.thinking : false;
     }
