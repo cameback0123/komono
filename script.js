@@ -1,4 +1,4 @@
-// DOM要素の取得4c727af
+// DOM要素の取得4c727af gemini修正
 const settingsBtn = document.getElementById('settings-btn');
 const settingsModal = document.getElementById('settings-modal');
 const closeBtn = document.querySelector('.modal .close-btn');
@@ -145,15 +145,6 @@ if (settings.thinking) {
   body.top_k = settings.topK;
 }
 
-const response = await fetch(
-    'https://api.anthropic.com/v1/messages',
-    {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(body)
-    }
-);
-
     // UI要素の準備
     let thinkingDiv = null; // 思考ブロック表示用のdiv
     const assistantMessageDiv = addMessageToUI('assistant', '...');
@@ -188,25 +179,27 @@ const response = await fetch(
                 for (const line of lines) {
                     if (line.startsWith('data: ')) {
                         const data = JSON.parse(line.substring(6));
-
-                        // --- ★ここからが思考ブロックを処理するロジック ---
-                        if (data.type === 'thinking') {
-                            if (thinkingDiv === null) {
-                                // 最初の思考データが来たら、新しいdivを作成
-                                thinkingDiv = addMessageToUI('thinking', '');
+// ★★★ 修正後のロジック ★★★
+                        if (data.type === 'content_block_delta') {
+                            // 思考ブロックの処理 (thinking_delta)
+                            if (data.delta.type === 'thinking_delta') {
+                                if (thinkingDiv === null) {
+                                    // 最初の思考データが来たら、新しいdivを作成
+                                    thinkingDiv = addMessageToUI('thinking', '');
+                                }
+                                // 思考テキストを追加
+                                thinkingDiv.textContent += data.delta.thinking;
+                                chatContainer.scrollTop = chatContainer.scrollHeight;
+                            } 
+                            // 通常の応答テキストの処理 (text_delta)
+                            else if (data.delta.type === 'text_delta') {
+                                const textChunk = data.delta.text;
+                                fullResponse += textChunk;
+                                assistantMessageDiv.textContent = fullResponse;
+                                chatContainer.scrollTop = chatContainer.scrollHeight;
                             }
-                            thinkingDiv.textContent += data.delta.text;
-                            chatContainer.scrollTop = chatContainer.scrollHeight;
-                        } 
-                        // --- ★ここまで ---
-                        
-                        else if (data.type === 'content_block_delta' && data.delta.type === 'text_delta') {
-                            const textChunk = data.delta.text;
-                            fullResponse += textChunk;
-                            assistantMessageDiv.textContent = fullResponse;
-                            chatContainer.scrollTop = chatContainer.scrollHeight;
                         }
-                    }
+                        // ★★★ ここまで ★★★
                 }
             }
             chatHistory.push({ role: 'assistant', content: fullResponse });
