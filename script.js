@@ -152,44 +152,62 @@ async function sendMessage() {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        if (settings.stream) {
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-                const chunk = decoder.decode(value, { stream: true });
-                const lines = chunk.split('\n');
-                for (const line of lines) {
-                    if (line.startsWith('data: ')) {
-                        const data = JSON.parse(line.substring(6));
-                        if (data.type === 'content_block_delta') {
-                            const delta = data.delta;
-                            if (delta.type === 'thinking_delta') {
-                                if (!thinkingDiv) thinkingDiv = addMessageToUI('assistant-thinking', '');
-                                thinkingDiv.textContent += delta.thinking;
-                                fullResponse += delta.thinking;
-                            } else if (delta.type === 'text_delta') {
-                                assistantMessageDiv.textContent += delta.text;
-                                fullResponse += delta.text;
-                            }
-                        }
+if (settings.stream) {
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let thinkingContent = ""; // 思考内容を蓄積
+    let responseContent = ""; // 応答内容を蓄積
+
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+            if (line.startsWith('data: ')) {
+                const data = JSON.parse(line.substring(6));
+
+                if (data.type === 'content_block_delta') {
+                    const delta = data.delta;
+                    if (delta.type === 'thinking_delta') {
+                        thinkingContent += delta.thinking;
+                    } else if (delta.type === 'text_delta') {
+                        responseContent += delta.text;
                     }
                 }
             }
-        } else {
-            const data = await response.json(); // JSONとしてパース
-            const claudeMessage = data.content[0].text;
-            assistantMessageDiv.textContent = claudeMessage;
-            fullResponse = claudeMessage;
         }
-
-        chatHistory.push({ role: 'assistant', content: fullResponse });
-        saveChatHistory();
-    } catch (error) {
-        console.error("Error in sendMessage:", error);
-        assistantMessageDiv.textContent = `エラーが発生しました: ${error.message}`;
     }
+
+    // 思考を先に表示
+    if (thinkingContent) {
+        thinkingDiv = addMessageToUI('assistant-thinking', thinkingContent);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+
+    // 応答をその後に表示
+    if (responseContent) {
+        assistantMessageDiv.textContent = responseContent;
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+
+    fullResponse = thinkingContent + responseContent;
+    chatHistory.push({ role: 'assistant', content: fullResponse });
+    saveChatHistory();
+} else {
+    // ストリーミングが無効な場合
+    const data = await response.json();
+    const claudeMessage = data.content[0].text;
+    assistantMessageDiv.textContent = claudeMessage;
+    chatHistory.push({ role: 'assistant', content: claudeMessage });
+    saveChatHistory();
+}
+} catch (error) {
+    console.error("Error in sendMessage:", error);
+    assistantMessageDiv.textContent = `エラーが発生しました: ${error.message}`;
+}
 }
 
 // --- イベントリスナー ---
